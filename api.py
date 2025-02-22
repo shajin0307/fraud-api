@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import joblib
 import pandas as pd
 import numpy as np
@@ -9,18 +9,19 @@ app = FastAPI()
 model = joblib.load("model/fraud_detection_model.pkl")
 scaler = joblib.load("model/scaler.pkl")
 
-# ✅ Define API Routes
+# ✅ Home Route
 @app.get("/")
 def home():
     return {"message": "✅ Fraud Detection API is Running!"}
 
-@app.post("/predict")  # ✅ Make sure this is POST, not GET
+# ✅ Fraud Detection Route (POST)
+@app.post("/predict")
 def predict(data: dict):
     try:
         # ✅ Convert input data into a DataFrame
         input_data = pd.DataFrame([data])
 
-        # ✅ Apply necessary transformations
+        # ✅ Feature Engineering
         input_data["Transaction Amount Log"] = np.log1p(input_data["Amount_INR"])
         input_data["Is High Amount"] = (input_data["Amount_INR"] > 50000).astype(int)
         input_data = input_data.drop(columns=["Amount_INR"])  # Drop original amount column
@@ -34,4 +35,4 @@ def predict(data: dict):
         return {"is_fraud": bool(prediction)}
 
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=400, detail=str(e))
